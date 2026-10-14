@@ -1,0 +1,18 @@
+@page "/events"
+
+<PageTitle>Browse Events | EventEase</PageTitle>
+
+<h1>Browse events</h1>
+<p>Find an event and explore its details or registration options.</p>
+
+<div class="row g-4">
+    <Virtualize TItem="EventItem" Items="@events" Context="eventItem" ItemSize="280" OverscanCount="3">
+        <div class="col-12 col-lg-6" @key="eventItem.Id">
+            <EventCard Event="eventItem" />
+        </div>
+    </Virtualize>
+</div>
+
+@code {
+    private ICollection<EventItem> events = EventCatalog.GetAll().ToList();
+}

@@ -1,0 +1,114 @@
+@page "/events/{EventId:int}/register"
+@inject RegistrationState RegistrationStore
+@inject UserSessionTracker SessionTracker
+
+<PageTitle>@(SelectedEvent is null ? "Register" : $"Register for {SelectedEvent.Name}") | EventEase</PageTitle>
+
+@if (SelectedEvent is null)
+{
+    <section class="empty-state" role="alert">
+        <h1>Event not found</h1>
+        <p>We couldn’t find an event with that ID. It may have been removed.</p>
+        <NavLink class="btn btn-primary" href="/events">Browse all events</NavLink>
+    </section>
+}
+else
+{
+    <div class="page-heading">
+        <p class="eyebrow">Event registration</p>
+        <h1>Join @SelectedEvent.Name</h1>
+        <p class="text-muted">@SelectedEvent.Date.ToString("MMMM d, yyyy") <span aria-hidden="true">·</span> @SelectedEvent.Location</p>
+    </div>
+
+    @if (registrationSubmitted)
+    {
+        <div class="alert alert-success" role="status">
+            <h2 class="h5">You’re registered, @registration.Name!</h2>
+            <p class="mb-0">Your place at @SelectedEvent.Name is recorded for this session.</p>
+        </div>
+        <NavLink class="btn btn-primary" href="/my-registrations">View my registrations</NavLink>
+    }
+    else
+    {
+        <section class="form-panel" aria-labelledby="registration-heading">
+            <h2 id="registration-heading" class="h4">Your details</h2>
+            <p class="text-muted">Fields marked required must be completed.</p>
+
+            @if (!string.IsNullOrWhiteSpace(submissionError))
+            {
+                <p class="alert alert-warning" role="alert">@submissionError</p>
+            }
+
+            <EditForm Model="registration" OnValidSubmit="SubmitRegistration">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label for="attendee-name" class="form-label">Full name <span aria-hidden="true">*</span></label>
+                    <InputText id="attendee-name" class="form-control" autocomplete="name" @bind-Value="registration.Name" />
+                    <ValidationMessage For="() => registration.Name" />
+                </div>
+                <div class="mb-3">
+                    <label for="attendee-email" class="form-label">Email address <span aria-hidden="true">*</span></label>
+                    <InputText id="attendee-email" type="email" class="form-control" autocomplete="email" inputmode="email" @bind-Value="registration.Email" />
+                    <ValidationMessage For="() => registration.Email" />
+                </div>
+                <button class="btn btn-primary" type="submit">Confirm registration</button>
+            </EditForm>
+        </section>
+    }
+
+    <nav class="mt-4 d-flex gap-3" aria-label="Event navigation">
+        <NavLink href="@($"/events/{SelectedEvent.Id}")">Event details</NavLink>
+        <NavLink href="/events">Browse all events</NavLink>
+    </nav>
+}
+
+@code {
+    [Parameter]
+    public int EventId { get; set; }
+
+    private EventRegistration registration = new();
+    private bool registrationSubmitted;
+    private int? previousEventId;
+    private string? submissionError;
+
+    private EventItem? SelectedEvent => EventCatalog.GetById(EventId);
+
+    protected override void OnParametersSet()
+    {
+        if (previousEventId == EventId)
+        {
+            return;
+        }
+
+        previousEventId = EventId;
+        registration = new EventRegistration { EventId = EventId };
+        registrationSubmitted = false;
+        submissionError = null;
+    }
+
+    private void SubmitRegistration()
+    {
+        if (SelectedEvent is null)
+        {
+            return;
+        }
+
+        var outcome = RegistrationStore.TryAdd(registration);
+        switch (outcome)
+        {
+            case RegistrationOutcome.Added:
+                SessionTracker.RecordRegistration(registration.Name);
+                registrationSubmitted = true;
+                submissionError = null;
+                break;
+            case RegistrationOutcome.Duplicate:
+                submissionError = "This email address is already registered for this event.";
+                break;
+            default:
+                submissionError = "Please check the details and correct any invalid fields.";
+                break;
+        }
+    }
+}

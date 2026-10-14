@@ -1,0 +1,12 @@
+# Build output
+bin/
+obj/
+
+# IDE and local user files
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Publish output is reproducible from source
+publish/

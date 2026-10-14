@@ -1,0 +1,47 @@
+@page "/events/{EventId:int}"
+@inject RegistrationState RegistrationStore
+@inject AttendanceTracker Attendance
+
+<PageTitle>@(SelectedEvent?.Name ?? "Event not found") | EventEase</PageTitle>
+
+@if (SelectedEvent is null)
+{
+    <h1>Event not found</h1>
+    <p role="alert">We couldn’t find an event with that ID.</p>
+    <NavLink href="/events">Browse all events</NavLink>
+}
+else
+{
+    <article>
+        <h1>@SelectedEvent.Name</h1>
+        <p><strong>Date:</strong> @SelectedEvent.Date.ToString("MMMM d, yyyy")</p>
+        <p><strong>Location:</strong> @SelectedEvent.Location</p>
+        <p>@SelectedEvent.Description</p>
+        <p class="event-registration-count" role="status">
+            @if (RegistrationStore.CountForEvent(SelectedEvent.Id) == 0)
+            {
+                <span>Be the first to register.</span>
+            }
+            else
+            {
+                <span>@RegistrationStore.CountForEvent(SelectedEvent.Id) registered so far</span>
+            }
+        </p>
+        @if (RegistrationStore.CountForEvent(SelectedEvent.Id) > 0)
+        {
+            <p class="text-muted">
+                @Attendance.CountForEvent(SelectedEvent.Id, RegistrationStore.Registrations) of
+                @RegistrationStore.CountForEvent(SelectedEvent.Id) attendee(s) checked in
+            </p>
+        }
+        <NavLink class="btn btn-primary" href="@($"/events/{SelectedEvent.Id}/register")">Register for this event</NavLink>
+        <NavLink class="btn btn-link" href="/events">Back to events</NavLink>
+    </article>
+}
+
+@code {
+    [Parameter]
+    public int EventId { get; set; }
+
+    private EventItem? SelectedEvent => EventCatalog.GetById(EventId);
+}

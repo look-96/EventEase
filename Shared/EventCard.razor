@@ -1,0 +1,51 @@
+@if (Event is null)
+{
+    <p class="alert alert-warning" role="alert">Event information is unavailable.</p>
+}
+else if (!IsValid)
+{
+    <div class="alert alert-warning" role="alert">
+        <p class="mb-1">This event has invalid information and cannot be displayed.</p>
+        <ul class="mb-0">
+            @foreach (var error in ValidationErrors)
+            {
+                <li>@error.ErrorMessage</li>
+            }
+        </ul>
+    </div>
+}
+else
+{
+    <article class="card h-100 shadow-sm">
+        <div class="card-body d-flex flex-column">
+            <h2 class="card-title h4">@Event.Name</h2>
+            <p class="mb-1"><strong>Date:</strong> @Event.Date.ToString("MMMM d, yyyy")</p>
+            <p class="mb-2"><strong>Location:</strong> @Event.Location</p>
+            <p class="card-text">@Event.Description</p>
+            <div class="mt-auto d-flex gap-2">
+                <NavLink class="btn btn-outline-primary" href="@($"/events/{Event.Id}")">Event details</NavLink>
+                <NavLink class="btn btn-primary" href="@($"/events/{Event.Id}/register")">Register</NavLink>
+            </div>
+        </div>
+    </article>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public EventItem? Event { get; set; }
+
+    private List<ValidationResult> ValidationErrors { get; } = new();
+
+    private bool IsValid
+    {
+        get
+        {
+            ValidationErrors.Clear();
+            return Event is not null && Validator.TryValidateObject(
+                Event,
+                new ValidationContext(Event),
+                ValidationErrors,
+                validateAllProperties: true);
+        }
+    }
+}

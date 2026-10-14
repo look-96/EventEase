@@ -1,0 +1,62 @@
+@implements IDisposable
+@inject UserSessionTracker SessionTracker
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">EventEase</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="nav flex-column" aria-label="Main navigation">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">Home</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="events">Browse events</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="my-registrations">
+                My registrations <span class="nav-count">@SessionTracker.RegistrationsMade</span>
+            </NavLink>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(SessionTracker.DisplayName))
+        {
+            <div class="nav-item px-3 session-greeting" aria-live="polite">
+                Welcome, @SessionTracker.DisplayName
+            </div>
+        }
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="counter">Counter</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="weather">Weather</NavLink>
+        </div>
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    protected override void OnInitialized()
+    {
+        SessionTracker.Changed += OnSessionChanged;
+    }
+
+    private void OnSessionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SessionTracker.Changed -= OnSessionChanged;
+    }
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

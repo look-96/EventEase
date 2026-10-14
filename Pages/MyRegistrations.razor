@@ -1,0 +1,73 @@
+@page "/my-registrations"
+@inject RegistrationState RegistrationStore
+@inject UserSessionTracker SessionTracker
+@inject AttendanceTracker Attendance
+
+<PageTitle>My registrations | EventEase</PageTitle>
+
+<div class="page-heading">
+    <p class="eyebrow">Your EventEase session</p>
+    <h1>My registrations</h1>
+    @if (!string.IsNullOrWhiteSpace(SessionTracker.DisplayName))
+    {
+        <p class="text-muted">Welcome, @SessionTracker.DisplayName. You have made @SessionTracker.RegistrationsMade registration(s) this session.</p>
+    }
+</div>
+
+@if (!string.IsNullOrWhiteSpace(checkInMessage))
+{
+    <p class="alert alert-info" role="status">@checkInMessage</p>
+}
+
+@if (RegistrationStore.Registrations.Count == 0)
+{
+    <section class="empty-state">
+        <h2 class="h4">No registrations yet</h2>
+        <p>Your registrations will appear here after you sign up for an event.</p>
+        <NavLink class="btn btn-primary" href="/events">Explore events</NavLink>
+    </section>
+}
+else
+{
+    <div class="registration-list">
+        @foreach (var registration in RegistrationStore.Registrations.OrderByDescending(item => item.RegisteredAtUtc))
+        {
+            var eventItem = EventCatalog.GetById(registration.EventId);
+            <article class="registration-card">
+                <div>
+                    <h2 class="h5">@(eventItem?.Name ?? "Event no longer available")</h2>
+                    @if (eventItem is not null)
+                    {
+                        <p class="mb-1">@eventItem.Date.ToString("MMMM d, yyyy") <span aria-hidden="true">·</span> @eventItem.Location</p>
+                    }
+                    <p class="text-muted mb-0">Registered as @registration.Name</p>
+                    @if (Attendance.IsCheckedIn(registration.Id))
+                    {
+                        <p class="attendance-status" role="status">Checked in at @Attendance.GetCheckInTimeUtc(registration.Id)?.ToLocalTime().ToString("t")</p>
+                    }
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    @if (!Attendance.IsCheckedIn(registration.Id))
+                    {
+                        <button class="btn btn-success" type="button" @onclick="() => MarkAttendance(registration.Id)">Check in</button>
+                    }
+                    @if (eventItem is not null)
+                    {
+                        <NavLink class="btn btn-outline-primary" href="@($"/events/{eventItem.Id}")">View event</NavLink>
+                    }
+                </div>
+            </article>
+        }
+    </div>
+}
+
+@code {
+    private string? checkInMessage;
+
+    private void MarkAttendance(Guid registrationId)
+    {
+        checkInMessage = Attendance.TryCheckIn(registrationId, RegistrationStore.Registrations)
+            ? "Attendance recorded."
+            : "This registration has already been checked in.";
+    }
+}
